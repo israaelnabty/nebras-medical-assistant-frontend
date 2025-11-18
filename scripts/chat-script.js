@@ -252,6 +252,14 @@ function clearChat() {
         title: 'Clear Chat',
         message: 'Are you sure you want to clear this chat?',
         onConfirm: () => {
+            // Remove current conversation from the list if it exists
+            if (currentConversationId) {
+                conversations = conversations.filter(c => c.id !== currentConversationId);
+                analytics.totalConversations = Math.max(analytics.totalConversations - 1, 0);
+                saveToLocalStorage();
+                renderConversationList();
+            }
+            
             createNewConversation();
             sidebar.classList.remove('active');
         }
@@ -341,7 +349,7 @@ function loadConversation(id) {
     }
     
     chatContainer.scrollTop = chatContainer.scrollHeight;
-    
+
     // Re-render conversation list to update active state
     renderConversationList();
 
