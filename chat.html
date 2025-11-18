@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebras - Medical AI Assistant</title>
+    <link rel="stylesheet" href="styles/chat-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button id="menuToggle" class="menu-toggle" title="Menu">
+                <span class="hamburger">☰</span>
+            </button>            
+            <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div>
+                <h1>Nebras</h1>
+                <p>🩺 Medical Assistant Chatbot</p>
+                <div id="apiStatus" class="api-status disconnected">API: Checking...</div>
+            </div>
+            
+        </div>
+
+        <!-- Sidebar for menu -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>📋 Menu</h3>
+                <button id="closeSidebar" class="close-btn">✕</button>
+            </div>
+            <div class="sidebar-content">
+                <!-- Chat History Section -->
+                <div class="sidebar-section">
+                    <h4 class="section-title">💬 Chat History</h4>
+                    <div id="conversationList" class="conversation-list">
+                        <!-- Conversation history will be loaded here -->
+                    </div>
+                    <button id="newChatBtn" class="sidebar-action-btn new-chat">
+                        ➕ New Chat
+                    </button>
+                    <button id="clearHistoryBtn" class="sidebar-action-btn clear-history">
+                        🗑️ Clear All History
+                    </button>
+                </div>
+
+                <!-- Controls Section -->
+                <div class="sidebar-section">
+                    <h4 class="section-title">⚙️ Actions</h4>
+                    <button id="clearBtn" class="sidebar-action-btn">
+                        🗑️ Clear Current Chat
+                    </button>
+                    <button id="exportBtn" class="sidebar-action-btn">
+                        📤 Export Chat
+                    </button>
+                    <button id="statsBtn" class="sidebar-action-btn">
+                        📊 Usage Stats
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main chat area -->
+        <div class="main-content">
+            <!-- Chat container -->
+            <div class="chat-container" id="chatContainer">
+                <div class="message assistant">
+                    <div class="message-content"></div>
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div class="loading" id="loading">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <!-- Input container -->
+            <div class="input-container">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="Ask me anything about health and medical topics..."
+                    autocomplete="off"
+                />
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Usage Statistics</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="statsContent">
+                <!-- Stats will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 Export Chat</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <button id="exportTxtBtn" class="export-option-btn">Export as Text (.txt)</button>
+                <button id="exportJsonBtn" class="export-option-btn">Export as JSON (.json)</button>
+                <button id="exportHtmlBtn" class="export-option-btn">Export as HTML (.html)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Confirm Action</h2>
+            <button class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            Are you sure you want to proceed?
+        </div>
+        <div class="modal-footer">
+            <button id="modalConfirm" class="sidebar-action-btn">Yes</button>
+            <button id="modalCancel" class="sidebar-action-btn clear-history">No</button>
+        </div>
+        </div>
+    </div>
+
+    <!--- Disclaimer Modal -->
+    <div id="disclaimerModal" class="modal">
+        <div class="modal-content disclaimer-modal-content">
+            <div class="modal-header disclaimer-header">
+                <h2>⚠️ Medical Disclaimer</h2>
+            </div>
+            <div class="modal-body">
+                <p>This chatbot provides general medical information only and is not a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider for medical concerns.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="disclaimerOk" class="disclaimer-ok-btn">I Understand</button>
+            </div>
+        </div>
+    </div>
+    
+
+    <script src="scripts/chat-script.js"></script>
+</body>
+</html>

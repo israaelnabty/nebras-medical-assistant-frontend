@@ -1,0 +1,570 @@
+/* =====================
+   Global Styles & Reset
+   ===================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-purple: #667eea;
+    --primary-pink: #764ba2;
+    --accent-color: #f093fb;
+    --text-dark: #2d3748;
+    --text-light: #718096;
+    --bg-light: #f7fafc;
+    --bg-white: #ffffff;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.15);
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+    line-height: 1.6;
+    overflow-x: hidden;
+    background: var(--bg-light);
+}
+
+/* =====================
+   Hero Section
+   ===================== */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-hero);
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+    padding: 60px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.hero-content {
+    max-width: 600px;
+    text-align: center;
+    z-index: 2;
+    animation: fadeInUp 1s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.logo-icon {
+    font-size: 4em;
+    animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.logo-text {
+    font-size: 4em;
+    font-weight: 700;
+    color: white;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tagline {
+    font-size: 1.5em;
+    color: white;
+    margin-bottom: 20px;
+    font-weight: 300;
+    opacity: 0.95;
+}
+
+.description {
+    font-size: 1.1em;
+    color: white;
+    margin-bottom: 40px;
+    opacity: 0.9;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cta-button {
+    padding: 18px 45px;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: white;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid white;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.cta-button:hover {
+    background: white;
+    color: var(--primary-purple);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.cta-button .arrow {
+    transition: transform 0.3s ease;
+}
+
+.cta-button:hover .arrow {
+    transform: translateX(5px);
+}
+
+/* Hero Visual - Floating Cards */
+.hero-visual {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.floating-card {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    animation: float 6s ease-in-out infinite;
+}
+
+.floating-card .icon {
+    font-size: 2.5em;
+}
+
+.floating-card p {
+    color: white;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.card-1 {
+    top: 15%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.card-2 {
+    top: 60%;
+    left: 15%;
+    animation-delay: 2s;
+}
+
+.card-3 {
+    top: 30%;
+    right: 12%;
+    animation-delay: 4s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-20px) rotate(3deg);
+    }
+}
+
+/* =====================
+   Features Section
+   ===================== */
+.features {
+    padding: 100px 20px;
+    background: var(--bg-white);
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5em;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 60px;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: var(--gradient-primary);
+    border-radius: 2px;
+}
+
+.features-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.feature-card {
+    padding: 40px 30px;
+    background: var(--bg-white);
+    border-radius: 15px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-purple);
+}
+
+.feature-icon {
+    font-size: 3em;
+    margin-bottom: 20px;
+}
+
+.feature-card h3 {
+    font-size: 1.4em;
+    color: var(--text-dark);
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.feature-card p {
+    color: var(--text-light);
+    font-size: 1em;
+    line-height: 1.7;
+}
+
+/* =====================
+   How It Works Section
+   ===================== */
+.how-it-works {
+    padding: 100px 20px;
+    background: var(--bg-light);
+}
+
+.steps {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.step {
+    flex: 1;
+    min-width: 250px;
+    text-align: center;
+    padding: 30px;
+    background: var(--bg-white);
+    border-radius: 15px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.step:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.step-number {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 20px;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+    font-weight: 700;
+}
+
+.step h3 {
+    font-size: 1.3em;
+    color: var(--text-dark);
+    margin-bottom: 15px;
+}
+
+.step p {
+    color: var(--text-light);
+    font-size: 1em;
+}
+
+.step-arrow {
+    font-size: 2em;
+    color: var(--primary-purple);
+    font-weight: 700;
+}
+
+/* =====================
+   Disclaimer Section
+   ===================== */
+.disclaimer-section {
+    padding: 80px 20px;
+    background: var(--bg-white);
+}
+
+.disclaimer-box {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+    border: 3px solid #ffc107;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.disclaimer-icon {
+    font-size: 3em;
+    margin-bottom: 20px;
+}
+
+.disclaimer-box h3 {
+    font-size: 1.8em;
+    color: #856404;
+    margin-bottom: 20px;
+}
+
+.disclaimer-box p {
+    color: #856404;
+    font-size: 1.1em;
+    line-height: 1.8;
+}
+
+/* =====================
+   CTA Section
+   ===================== */
+.cta-section {
+    padding: 100px 20px;
+    background: var(--gradient-primary);
+    text-align: center;
+    color: white;
+}
+
+.cta-section h2 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+.cta-section p {
+    font-size: 1.2em;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.cta-button.secondary {
+    background: white;
+    color: var(--primary-purple);
+    border: none;
+}
+
+.cta-button.secondary:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-5px);
+}
+
+/* =====================
+   Footer
+   ===================== */
+.footer {
+    padding: 40px 20px;
+    background: var(--text-dark);
+    color: white;
+    text-align: center;
+}
+
+.footer p {
+    margin-bottom: 10px;
+}
+
+.footer-note {
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+/* =====================
+   Responsive Design
+   ===================== */
+@media (max-width: 768px) {
+    .logo-text {
+        font-size: 2.5em;
+    }
+
+    .logo-icon {
+        font-size: 2.5em;
+    }
+
+    .tagline {
+        font-size: 1.2em;
+    }
+
+    .description {
+        font-size: 1em;
+    }
+
+    .section-title {
+        font-size: 2em;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .steps {
+        flex-direction: column;
+    }
+
+    .step-arrow {
+        transform: rotate(90deg);
+    }
+
+    /* Adjust floating cards for tablets */
+    .floating-card {
+        padding: 15px;
+        font-size: 0.85em;
+    }
+
+    .floating-card .icon {
+        font-size: 2em;
+    }
+
+    .card-1 {
+        top: 10%;
+        left: 5%;
+    }
+
+    .card-2 {
+        bottom: 15%;
+        left: 5%;
+        top: auto;
+    }
+
+    .card-3 {
+        top: 10%;
+        right: 5%;
+    }
+
+    .cta-section h2 {
+        font-size: 2em;
+    }
+
+    .cta-section p {
+        font-size: 1em;
+    }
+
+    .disclaimer-box {
+        padding: 30px 20px;
+    }
+
+    .disclaimer-box h3 {
+        font-size: 1.4em;
+    }
+
+    .disclaimer-box p {
+        font-size: 1em;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        padding: 40px 15px;
+    }
+
+    .logo-text {
+        font-size: 2em;
+    }
+
+    .logo-icon {
+        font-size: 2em;
+    }
+
+    .cta-button {
+        padding: 15px 30px;
+        font-size: 1em;
+    }
+
+    .section-title {
+        font-size: 1.6em;
+    }
+
+    .feature-card {
+        padding: 30px 20px;
+    }
+
+    .step {
+        padding: 25px 20px;
+    }
+
+    /* Make floating cards smaller and repositioned for mobile */
+    .floating-card {
+        padding: 10px 12px;
+        font-size: 0.75em;
+    }
+
+    .floating-card .icon {
+        font-size: 1.5em;
+    }
+
+    .floating-card p {
+        font-size: 0.8em;
+    }
+
+    .card-1 {
+        top: 8%;
+        left: 3%;
+    }
+
+    .card-2 {
+        bottom: 10%;
+        left: 3%;
+    }
+
+    .card-3 {
+        top: 8%;
+        right: 3%;
+    }
+}
