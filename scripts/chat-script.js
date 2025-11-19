@@ -150,28 +150,7 @@ function buildPrompt() {
 async function sendMessage() {
     const message = lastFailedMessage || userInput.value.trim();
     
-    if (!message) return;
-
-    // If this is the first user message of a new conversation
-    if (!currentConversationId) {
-        currentConversationId = Date.now().toString();
-        const title = message.substring(0, 40) + 
-            (message.length > 40 ? '...' : '');
-
-        const conversation = {
-            id: currentConversationId,
-            title: title || 'New Conversation',
-            messages: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
-        conversations.unshift(conversation);
-        analytics.totalConversations++;
-
-        renderConversationList();
-        saveToLocalStorage();
-    }
+    if (!message) return;    
     
     // Only add user message if this is not a retry
     if (!lastFailedMessage) {
@@ -242,6 +221,26 @@ async function sendMessage() {
         }        
 
     } finally {
+        // Create a conversation ID if this is a new conversation and save it to history
+        const isFirstMessage = !currentConversationId;
+        if (isFirstMessage) {
+            currentConversationId = Date.now().toString();
+            const title = message.substring(0, 40) + 
+                (message.length > 40 ? '...' : '');
+
+            const conversation = {
+                id: currentConversationId,
+                title: title || 'New Conversation',
+                messages: [...currentConversation],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            conversations.unshift(conversation);
+            analytics.totalConversations++;
+            renderConversationList();
+        }
+
         isWaitingForResponse = false;
         loading.classList.remove('active');
         sendBtn.disabled = false;
@@ -379,6 +378,8 @@ function updateCurrentConversation() {
 }
 
 function loadConversation(id) {
+    if(currentConversationId === id) return;
+
     loading.classList.remove('active');
     isWaitingForResponse = false;
     
@@ -501,7 +502,7 @@ function renderConversationList() {
         menuBtn.textContent = '⋮';
         menuBtn.onclick = (e) => {
             e.stopPropagation();
-            showContextMenu(e, conv.id);
+            toggleContextMenu(e, conv.id);
         };
         
         item.appendChild(content);
@@ -532,6 +533,44 @@ function renderConversationList() {
 // Context Menu
 // =====================
 let currentContextConversationId = null;
+
+function toggleContextMenu(e, conversationId) {
+    e.preventDefault();
+    
+    // If clicking the same menu, toggle it
+    if (currentContextConversationId === conversationId && contextMenu.classList.contains('active')) {
+        hideContextMenu();
+        return;
+    }
+    
+    currentContextConversationId = conversationId;
+    
+    const menu = contextMenu;
+    menu.classList.add('active');
+    
+    // Get the position of the clicked button
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    
+    // Position menu at the button location
+    let x = rect.left;
+    let y = rect.bottom + 5; // 5px below the button
+    
+    // Adjust position if menu would go off screen
+    const menuWidth = 150;
+    const menuHeight = 80;
+    
+    if (x + menuWidth > window.innerWidth) {
+        x = rect.right - menuWidth;
+    }
+    
+    if (y + menuHeight > window.innerHeight) {
+        y = rect.top - menuHeight - 5; // Position above the button instead
+    }
+    
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+}
 
 function showContextMenu(e, conversationId) {
     e.preventDefault();
@@ -782,18 +821,48 @@ function attachEventListeners() {
     // History dropdown
     historyDropdownBtn.addEventListener('click', toggleHistoryDropdown);
     
-    // Context menu
+    // Context menu - Export from context menu exports the selected conversation
     document.getElementById('contextExport').addEventListener('click', () => {
         if (currentContextConversationId) {
-            exportModal.classList.add('active');
-            const tempCurrentId = currentConversationId;
-            currentConversationId = currentContextConversationId;
-            hideContextMenu();
-            sidebar.classList.remove('active');
-            // Restore after a delay to allow export
-            setTimeout(() => {
-                currentConversationId = tempCurrentId;
-            }, 100);
+            const conversation = conversations.find(c => c.id === currentContextConversationId);
+            if (conversation && conversation.messages.length > 0) {
+                // Show export modal with context conversation selected
+                exportModal.classList.add('active');
+                hideContextMenu();
+                sidebar.classList.remove('active');
+                
+                // Override export functions temporarily to export context conversation
+                const originalExportAsText = exportAsText;
+                const originalExportAsJson = exportAsJson;
+                const originalExportAsHtml = exportAsHtml;
+                
+                window.tempExportAsText = () => {
+                    exportConversationAsText(conversation);
+                    exportModal.classList.remove('active');
+                    // Restore original functions
+                    window.tempExportAsText = null;
+                    window.tempExportAsJson = null;
+                    window.tempExportAsHtml = null;
+                };
+                
+                window.tempExportAsJson = () => {
+                    exportConversationAsJson(conversation);
+                    exportModal.classList.remove('active');
+                    // Restore original functions
+                    window.tempExportAsText = null;
+                    window.tempExportAsJson = null;
+                    window.tempExportAsHtml = null;
+                };
+                
+                window.tempExportAsHtml = () => {
+                    exportConversationAsHtml(conversation);
+                    exportModal.classList.remove('active');
+                    // Restore original functions
+                    window.tempExportAsText = null;
+                    window.tempExportAsJson = null;
+                    window.tempExportAsHtml = null;
+                };
+            }
         }
     });
     
@@ -811,26 +880,42 @@ function attachEventListeners() {
         }
     });
     
-    // Export options
+    // Export options - Check if temp functions exist first
     document.getElementById('exportTxtBtn').addEventListener('click', () => {
-        exportAsText();
-        exportModal.classList.remove('active');
+        if (window.tempExportAsText) {
+            window.tempExportAsText();
+        } else {
+            exportAsText();
+            exportModal.classList.remove('active');
+        }
     });
     
     document.getElementById('exportJsonBtn').addEventListener('click', () => {
-        exportAsJson();
-        exportModal.classList.remove('active');
+        if (window.tempExportAsJson) {
+            window.tempExportAsJson();
+        } else {
+            exportAsJson();
+            exportModal.classList.remove('active');
+        }
     });
     
     document.getElementById('exportHtmlBtn').addEventListener('click', () => {
-        exportAsHtml();
-        exportModal.classList.remove('active');
+        if (window.tempExportAsHtml) {
+            window.tempExportAsHtml();
+        } else {
+            exportAsHtml();
+            exportModal.classList.remove('active');
+        }
     });
     
     // Modal close buttons
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', () => {
             btn.closest('.modal').classList.remove('active');
+            // Clear temp export functions when closing modal
+            window.tempExportAsText = null;
+            window.tempExportAsJson = null;
+            window.tempExportAsHtml = null;
         });
     });
     
@@ -839,6 +924,10 @@ function attachEventListeners() {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('active');
+                // Clear temp export functions when closing modal
+                window.tempExportAsText = null;
+                window.tempExportAsJson = null;
+                window.tempExportAsHtml = null;
             }
         });
     });
