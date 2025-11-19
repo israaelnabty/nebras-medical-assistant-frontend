@@ -39,10 +39,10 @@ body {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* align container to top */
-    justify-content: center; /* center container horizontally */
-    margin: 0;            /* remove default body margin */
-    padding: 0;           /* remove default body padding */
+    align-items: flex-start;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
     transition: background 0.3s ease; 
 }
 
@@ -50,10 +50,10 @@ body {
    Container & Layout
    ===================== */
 .container {
-    width: 100%;           /* reduce side space slightly */
-    max-width: none;      /* remove max width limit */
-    height: 90vh;         /* almost full height */
-    margin-top: 0;        /* no upper space */
+    width: 100%;
+    max-width: none;
+    height: 90vh;
+    margin-top: 0;
     height: 100vh;
     background: var(--container-bg);
     border-radius: 20px;
@@ -247,6 +247,39 @@ body {
     border-bottom-left-radius: 5px;
 }
 
+/* Error message styling */
+.message.error .message-content {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 2px solid #ef4444;
+    color: #991b1b;
+}
+
+[data-theme="dark"] .message.error .message-content {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    border-color: #dc2626;
+    color: #fca5a5;
+}
+
+/* Retry button */
+.retry-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
 /* =====================
    Loading
    ===================== */
@@ -301,8 +334,8 @@ body {
 }
 
 #userInput {
-    flex: 1;                 /* Take available space */
-    min-width: 0;            /* Important to prevent overflow */
+    flex: 1;
+    min-width: 0;
     padding: 15px 20px;
     border: 2px solid var(--border-color);
     border-radius: 25px;
@@ -319,7 +352,7 @@ body {
 }
 
 #sendBtn {
-    flex-shrink: 0;          /* Don’t shrink button too small */
+    flex-shrink: 0;
     padding: 15px 35px;
     background: var(--primary-gradient);
     color: white;
@@ -410,8 +443,39 @@ body {
     border-bottom: 2px solid var(--border-color);
 }
 
-.conversation-list {
+/* =====================
+   History Dropdown
+   ===================== */
+.history-dropdown {
     margin-bottom: 15px;
+}
+
+#historyDropdownBtn {
+    display: flex;
+    justify-content: space-between; /* pushes arrow to right */
+    align-items: center;
+    cursor: pointer; /* for click */
+}
+
+.dropdown-arrow {
+    transition: transform 0.3s ease;
+}
+
+.dropdown-arrow.rotated {
+    transform: rotate(180deg);
+}
+
+.conversation-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 10px;
+    transition: max-height 0.3s ease;
+}
+
+.conversation-list.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    margin-top: 0;
 }
 
 .conversation-item {
@@ -422,10 +486,13 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     border: 2px solid transparent;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .conversation-item:hover {
-    transform: translateX(5px);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     border-color: #667eea;
 }
@@ -435,15 +502,87 @@ body {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
 }
 
+.conversation-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
 .conversation-item h4 {
     font-size: 0.95em;
     margin-bottom: 5px;
     color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .conversation-item p {
     font-size: 0.85em;
     color: #888;
+}
+
+.conversation-item-menu {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.3em;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+}
+
+.conversation-item:hover .conversation-item-menu {
+    opacity: 1;
+}
+
+.conversation-item-menu:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+/* =====================
+   Context Menu
+   ===================== */
+.context-menu {
+    position: fixed;
+    background: var(--container-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    display: none;
+    min-width: 150px;
+    overflow: hidden;
+}
+
+.context-menu.active {
+    display: block;
+}
+
+.context-menu-item {
+    width: 100%;
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.95em;
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    display: block;
+}
+
+.context-menu-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.context-menu-item.delete {
+    color: #ef4444;
+}
+
+.context-menu-item.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 /* =====================
@@ -471,7 +610,8 @@ body {
 }
 
 .sidebar-action-btn.new-chat {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #c6ccd6 0%, #999ea5 100%);
+    color: #111827;
 }
 
 .sidebar-action-btn.clear-history {
@@ -632,8 +772,8 @@ body {
 .disclaimer-header {
     background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
     border-bottom: 2px solid #ffc107;
-    color: #856404;       /* dark yellow/brownish text for contrast */
-    border-radius: 15px 15px 0 0; /* match modal corners */
+    color: #856404;
+    border-radius: 15px 15px 0 0;
     padding: 15px 20px;
     display: flex;
     justify-content: space-between;
@@ -645,6 +785,29 @@ body {
     color: #856404;
     font-size: 1em;
     line-height: 1.5;
+}
+
+.disclaimer-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+}
+
+.disclaimer-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ff9800;
+}
+
+.disclaimer-checkbox-container label {
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
 }
 
 .disclaimer-ok-btn {
@@ -770,9 +933,9 @@ body {
     }
 
     .api-status {
-        font-size: 0.75em;      /* Slightly smaller text */
-        padding: 6px 12px;      /* Slightly smaller padding */
-        margin-top: 8px;        /* Less space under paragraph */
+        font-size: 0.75em;
+        padding: 6px 12px;
+        margin-top: 8px;
     }
 }
 

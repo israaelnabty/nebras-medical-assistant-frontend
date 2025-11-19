@@ -31,17 +31,10 @@
                 <button id="closeSidebar" class="close-btn">✕</button>
             </div>
             <div class="sidebar-content">
-                <!-- Chat History Section -->
-                <div class="sidebar-section">
-                    <h4 class="section-title">💬 Chat History</h4>
-                    <div id="conversationList" class="conversation-list">
-                        <!-- Conversation history will be loaded here -->
-                    </div>
+                <!-- New Chat Section -->
+                <div class="sidebar-section">                    
                     <button id="newChatBtn" class="sidebar-action-btn new-chat">
                         ➕ New Chat
-                    </button>
-                    <button id="clearHistoryBtn" class="sidebar-action-btn clear-history">
-                        🗑️ Clear All History
                     </button>
                 </div>
 
@@ -49,15 +42,30 @@
                 <div class="sidebar-section">
                     <h4 class="section-title">⚙️ Actions</h4>
                     <button id="clearBtn" class="sidebar-action-btn">
-                        🗑️ Clear Current Chat
+                        🗑️ Delete Current Chat
                     </button>
                     <button id="exportBtn" class="sidebar-action-btn">
-                        📤 Export Chat
+                        📤 Export Current Chat
                     </button>
                     <button id="statsBtn" class="sidebar-action-btn">
                         📊 Usage Stats
                     </button>
                 </div>
+
+                <!-- Chat History Section -->
+                <div class="sidebar-section">                    
+                    <div class="history-dropdown">
+                        <h4 id="historyDropdownBtn" class="section-title">
+                            💬 Chat History <span class="dropdown-arrow">▼</span>
+                        </h4>
+                        <div id="conversationList" class="conversation-list collapsed">
+                            <!-- Conversation history will be loaded here -->
+                        </div>
+                    </div>
+                    <button id="clearHistoryBtn" class="sidebar-action-btn clear-history">
+                        🗑️ Clear All History
+                    </button>
+                </div>                
             </div>
         </div>
 
@@ -135,6 +143,12 @@
         </div>
     </div>
 
+    <!-- Context Menu for conversation items -->
+    <div id="contextMenu" class="context-menu">
+        <button id="contextExport" class="context-menu-item">📤 Export</button>
+        <button id="contextDelete" class="context-menu-item delete">🗑️ Delete</button>
+    </div>
+
     <!--- Disclaimer Modal -->
     <div id="disclaimerModal" class="modal">
         <div class="modal-content disclaimer-modal-content">
@@ -143,6 +157,11 @@
             </div>
             <div class="modal-body">
                 <p>This chatbot provides general medical information only and is not a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider for medical concerns.</p>
+                
+                <div class="disclaimer-checkbox-container">
+                    <input type="checkbox" id="disclaimerDontShow" class="disclaimer-checkbox">
+                    <label for="disclaimerDontShow">Don't show this again</label>
+                </div>
             </div>
             <div class="modal-footer">
                 <button id="disclaimerOk" class="disclaimer-ok-btn">I Understand</button>

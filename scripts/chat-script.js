@@ -6,10 +6,12 @@ const API_URL = 'https://israaelnabty-nebraschatbotapi.hf.space/generate';
 // =====================
 // State Management
 // =====================
-let historyExchangesCount = 3; // Number of previous exchanges to include in context
+let historyExchangesCount = 3;
 let currentConversation = [];
 let conversations = [];
 let currentConversationId = null;
+let lastFailedMessage = null;
+let isWaitingForResponse = false;
 let analytics = {
     totalMessages: 0,
     totalConversations: 0,
@@ -39,6 +41,8 @@ const statsBtn = document.getElementById('statsBtn');
 const statsModal = document.getElementById('statsModal');
 const exportModal = document.getElementById('exportModal');
 const statsContent = document.getElementById('statsContent');
+const historyDropdownBtn = document.getElementById('historyDropdownBtn');
+const contextMenu = document.getElementById('contextMenu');
 
 // =====================
 // Initialization
@@ -86,6 +90,17 @@ function saveTheme(theme) {
 }
 
 // =====================
+// Disclaimer Management
+// =====================
+function shouldShowDisclaimer() {
+    return localStorage.getItem('nebras_hide_disclaimer') !== 'true';
+}
+
+function saveDisclaimerPreference(hideDisclaimer) {
+    localStorage.setItem('nebras_hide_disclaimer', hideDisclaimer ? 'true' : 'false');
+}
+
+// =====================
 // API Functions
 // =====================
 async function checkAPIHealth() {
@@ -105,19 +120,18 @@ async function checkAPIHealth() {
 }
 
 function buildPrompt() {
-    // Take last n exchanges (2n messages) from currentConversation
     const recentMessages = currentConversation.slice(-2*historyExchangesCount); 
 
     let context = "";
     recentMessages.forEach(msg => {
         if (msg.role === 'user') {
-            context += `Previous Q: ${msg.content}\n`;
+            context += `Previous Question: ${msg.content}\n`;
         } else if (msg.role === 'assistant') {
-            context += `Previous A: ${msg.content}\n`;
+            context += `Previous Answer: ${msg.content}\n`;
         }
     });
 
-    const currentMessage = userInput.value.trim();
+    const currentMessage = lastFailedMessage || userInput.value.trim();
 
     const prompt = `
     You are a medical assistant. Provide accurate, concise, professional medical advice in 1-3 sentences.
@@ -134,7 +148,7 @@ function buildPrompt() {
 }
 
 async function sendMessage() {
-    const message = userInput.value.trim();
+    const message = lastFailedMessage || userInput.value.trim();
     
     if (!message) return;
 
@@ -159,15 +173,25 @@ async function sendMessage() {
         saveToLocalStorage();
     }
     
-    // Add user message
-    addMessage(message, true);
-    userInput.value = '';
+    // Only add user message if this is not a retry
+    if (!lastFailedMessage) {
+        addMessage(message, true);
+        userInput.value = '';
+    } else {
+        // If retrying, remove the old error message
+        const errorMessages = chatContainer.querySelectorAll('.message.error');
+        errorMessages.forEach(msg => msg.remove());
+
+        // Also, remove it from the conversation history
+        currentConversation = currentConversation.filter(msg => !msg.isError);
+    }
     
     // Update analytics
     analytics.totalMessages++;
     analytics.apiCalls++;
     
     // Show loading
+    isWaitingForResponse = true;
     loading.classList.add('active');
     sendBtn.disabled = true;
     
@@ -199,12 +223,26 @@ async function sendMessage() {
         }
         
         const data = await response.json();
-        addMessage(data.response, false);
+        if(isWaitingForResponse) {
+            addMessage(data.response, false);
+        }        
+        
+        // Clear the failed message state on success
+        lastFailedMessage = null;
         
     } catch (error) {
         console.error('Error:', error);
-        addMessage('Sorry, I encountered an error. Please make sure the API is running and try again.', false);
+        
+        // Store the failed message for retry
+        lastFailedMessage = message;
+        
+        // Add error message with retry button
+        if(isWaitingForResponse) {
+            addMessage('Sorry, I encountered an error. Please make sure the API is running and try again.', false, true);
+        }        
+
     } finally {
+        isWaitingForResponse = false;
         loading.classList.remove('active');
         sendBtn.disabled = false;
         userInput.focus();
@@ -226,13 +264,25 @@ let welcomeMessage = `
     </div>
 `;
 
-function addMessage(content, isUser) {
+function addMessage(content, isUser, isError = false) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+    messageDiv.className = `message ${isUser ? 'user' : 'assistant'} ${isError ? 'error' : ''}`;
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     contentDiv.textContent = content;
+    
+    // Add retry button if this is an error message
+    if (isError) {
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'retry-btn';
+        retryBtn.textContent = '🔄 Retry';
+        retryBtn.onclick = () => {
+            sendMessage();
+        };
+        contentDiv.appendChild(document.createElement('br'));
+        contentDiv.appendChild(retryBtn);
+    }
     
     messageDiv.appendChild(contentDiv);
     chatContainer.appendChild(messageDiv);
@@ -243,14 +293,15 @@ function addMessage(content, isUser) {
     currentConversation.push({
         role: isUser ? 'user' : 'assistant',
         content: content,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        isError: isError
     });
 }
 
 function clearChat() {
     showConfirmModal({
-        title: 'Clear Chat',
-        message: 'Are you sure you want to clear this chat?',
+        title: 'Delete Chat',
+        message: 'Are you sure you want to delete this chat?',
         onConfirm: () => {
             // Remove current conversation from the list if it exists
             if (currentConversationId) {
@@ -258,7 +309,7 @@ function clearChat() {
                 analytics.totalConversations = Math.max(analytics.totalConversations - 1, 0);
                 saveToLocalStorage();
                 renderConversationList();
-            }
+            }            
             
             createNewConversation();
             sidebar.classList.remove('active');
@@ -272,17 +323,18 @@ function clearAllHistory() {
         message: 'Are you sure you want to delete ALL chat history? This cannot be undone.',
         onConfirm: () => {
             conversations = [];
-        analytics = {
-            totalMessages: 0,
-            totalConversations: 0,
-            apiCalls: 0,
-            averageResponseTime: 0,
-            responseTimes: []
-        };
-        saveToLocalStorage();
-        renderConversationList();
-        createNewConversation();
-        sidebar.classList.remove('active');
+            analytics = {
+                totalMessages: 0,
+                totalConversations: 0,
+                apiCalls: 0,
+                averageResponseTime: 0,
+                responseTimes: []
+            };
+            lastFailedMessage = null;
+            saveToLocalStorage();
+            renderConversationList();
+            createNewConversation();
+            sidebar.classList.remove('active');
         }
     });
 }
@@ -291,10 +343,16 @@ function clearAllHistory() {
 // Conversation Management
 // =====================
 function createNewConversation() {
+    loading.classList.remove('active');
+    isWaitingForResponse = false;
+
     chatContainer.innerHTML = welcomeMessage;
     currentConversationId = null;
     currentConversation = [];
-    showDisclaimerModal();
+    lastFailedMessage = null;
+    if (shouldShowDisclaimer()) {
+        showDisclaimerModal();
+    }
 }
 
 function updateCurrentConversation() {
@@ -305,7 +363,6 @@ function updateCurrentConversation() {
     if (!conversation) 
         return;
 
-    // ❌ If no user messages → remove conversation entirely
     const hasUserMessage = currentConversation.some(m => m.role === 'user');    
     if (!hasUserMessage) {
         conversations = conversations.filter(c => c.id !== currentConversationId);
@@ -315,7 +372,6 @@ function updateCurrentConversation() {
         return;
     }
     
-    // ✔ Otherwise save conversation
     conversation.messages = [...currentConversation];
     conversation.updatedAt = new Date().toISOString();
     
@@ -323,13 +379,27 @@ function updateCurrentConversation() {
 }
 
 function loadConversation(id) {
+    loading.classList.remove('active');
+    isWaitingForResponse = false;
+    
     const conversation = conversations.find(c => c.id === id);
     if (!conversation) return;
     
     currentConversationId = id;
     currentConversation = [...conversation.messages];
 
-    // Clear and reload chat
+    const lastMessage = currentConversation[currentConversation.length - 1];
+    if (lastMessage && lastMessage.isError) {
+        for (let i = currentConversation.length - 2; i >= 0; i--) {
+            if (currentConversation[i].role === 'user') {
+                lastFailedMessage = currentConversation[i].content;
+                break;
+            }
+        }
+    } else {
+        lastFailedMessage = null;
+    }
+
     chatContainer.innerHTML = '';
     
     if (currentConversation.length === 0) {
@@ -337,11 +407,22 @@ function loadConversation(id) {
     } else {
         currentConversation.forEach(msg => {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${msg.role === 'user' ? 'user' : 'assistant'}`;
+            messageDiv.className = `message ${msg.role === 'user' ? 'user' : 'assistant'} ${msg.isError ? 'error' : ''}`;
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
             contentDiv.textContent = msg.content;
+            
+            if (msg.isError) {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'retry-btn';
+                retryBtn.textContent = '🔄 Retry';
+                retryBtn.onclick = () => {
+                    sendMessage();
+                };
+                contentDiv.appendChild(document.createElement('br'));
+                contentDiv.appendChild(retryBtn);
+            }
             
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
@@ -349,11 +430,42 @@ function loadConversation(id) {
     }
     
     chatContainer.scrollTop = chatContainer.scrollHeight;
-
-    // Re-render conversation list to update active state
     renderConversationList();
-
     sidebar.classList.remove('active');
+}
+
+function deleteConversation(id) {
+    showConfirmModal({
+        title: 'Delete Conversation',
+        message: 'Are you sure you want to delete this conversation?',
+        onConfirm: () => {
+            conversations = conversations.filter(c => c.id !== id);
+            analytics.totalConversations = Math.max(analytics.totalConversations - 1, 0);
+            
+            if (currentConversationId === id) {
+                createNewConversation();
+            }
+            
+            saveToLocalStorage();
+            renderConversationList();
+        }
+    });
+}
+
+function exportConversation(id, format = 'text') {
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation || conversation.messages.length === 0) {
+        alert('No messages to export');
+        return;
+    }
+    
+    if (format === 'text') {
+        exportConversationAsText(conversation);
+    } else if (format === 'json') {
+        exportConversationAsJson(conversation);
+    } else if (format === 'html') {
+        exportConversationAsHtml(conversation);
+    }
 }
 
 function renderConversationList() {
@@ -370,7 +482,10 @@ function renderConversationList() {
         if (conv.id === currentConversationId) {
             item.classList.add('active');
         }
-        item.onclick = () => loadConversation(conv.id);
+        
+        const content = document.createElement('div');
+        content.className = 'conversation-item-content';
+        content.onclick = () => loadConversation(conv.id);
         
         const title = document.createElement('h4');
         title.textContent = conv.title;
@@ -378,10 +493,76 @@ function renderConversationList() {
         const date = document.createElement('p');
         date.textContent = new Date(conv.updatedAt).toLocaleString();
         
-        item.appendChild(title);
-        item.appendChild(date);
+        content.appendChild(title);
+        content.appendChild(date);
+        
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'conversation-item-menu';
+        menuBtn.textContent = '⋮';
+        menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            showContextMenu(e, conv.id);
+        };
+        
+        item.appendChild(content);
+        item.appendChild(menuBtn);
+        
+        // Long press support for mobile
+        let pressTimer;
+        item.addEventListener('touchstart', (e) => {
+            pressTimer = setTimeout(() => {
+                e.preventDefault();
+                showContextMenu(e, conv.id);
+            }, 500);
+        });
+        
+        item.addEventListener('touchend', () => {
+            clearTimeout(pressTimer);
+        });
+        
+        item.addEventListener('touchmove', () => {
+            clearTimeout(pressTimer);
+        });
+        
         conversationList.appendChild(item);
     });
+}
+
+// =====================
+// Context Menu
+// =====================
+let currentContextConversationId = null;
+
+function showContextMenu(e, conversationId) {
+    e.preventDefault();
+    currentContextConversationId = conversationId;
+    
+    const menu = contextMenu;
+    menu.classList.add('active');
+    
+    // Position the menu
+    let x = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    let y = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+    
+    // Adjust position if menu would go off screen
+    const menuWidth = 150;
+    const menuHeight = 80;
+    
+    if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 10;
+    }
+    
+    if (y + menuHeight > window.innerHeight) {
+        y = window.innerHeight - menuHeight - 10;
+    }
+    
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+}
+
+function hideContextMenu() {
+    contextMenu.classList.remove('active');
+    currentContextConversationId = null;
 }
 
 // =====================
@@ -402,6 +583,15 @@ function updateThemeIcon(theme) {
 }
 
 // =====================
+// Dropdown Toggle
+// =====================
+function toggleHistoryDropdown() {
+    const arrow = historyDropdownBtn.querySelector('.dropdown-arrow');
+    conversationList.classList.toggle('collapsed');
+    arrow.classList.toggle('rotated');
+}
+
+// =====================
 // Export Functions
 // =====================
 function exportAsText() {
@@ -410,7 +600,28 @@ function exportAsText() {
         alert('No messages to export');
         return;
     }
-    
+    exportConversationAsText(conversation);
+}
+
+function exportAsJson() {
+    const conversation = conversations.find(c => c.id === currentConversationId);
+    if (!conversation || conversation.messages.length === 0) {
+        alert('No messages to export');
+        return;
+    }
+    exportConversationAsJson(conversation);
+}
+
+function exportAsHtml() {
+    const conversation = conversations.find(c => c.id === currentConversationId);
+    if (!conversation || conversation.messages.length === 0) {
+        alert('No messages to export');
+        return;
+    }
+    exportConversationAsHtml(conversation);
+}
+
+function exportConversationAsText(conversation) {
     let text = `Nebras Conversation - ${conversation.title}\n`;
     text += `Date: ${new Date(conversation.createdAt).toLocaleString()}\n`;
     text += `${'='.repeat(50)}\n\n`;
@@ -423,24 +634,12 @@ function exportAsText() {
     downloadFile(text, `nebras-conversation-${Date.now()}.txt`, 'text/plain');
 }
 
-function exportAsJson() {
-    const conversation = conversations.find(c => c.id === currentConversationId);
-    if (!conversation || conversation.messages.length === 0) {
-        alert('No messages to export');
-        return;
-    }
-    
+function exportConversationAsJson(conversation) {
     const json = JSON.stringify(conversation, null, 2);
     downloadFile(json, `nebras-conversation-${Date.now()}.json`, 'application/json');
 }
 
-function exportAsHtml() {
-    const conversation = conversations.find(c => c.id === currentConversationId);
-    if (!conversation || conversation.messages.length === 0) {
-        alert('No messages to export');
-        return;
-    }
-    
+function exportConversationAsHtml(conversation) {
     let html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -580,6 +779,38 @@ function attachEventListeners() {
     });
     statsBtn.addEventListener('click', showStats);
     
+    // History dropdown
+    historyDropdownBtn.addEventListener('click', toggleHistoryDropdown);
+    
+    // Context menu
+    document.getElementById('contextExport').addEventListener('click', () => {
+        if (currentContextConversationId) {
+            exportModal.classList.add('active');
+            const tempCurrentId = currentConversationId;
+            currentConversationId = currentContextConversationId;
+            hideContextMenu();
+            sidebar.classList.remove('active');
+            // Restore after a delay to allow export
+            setTimeout(() => {
+                currentConversationId = tempCurrentId;
+            }, 100);
+        }
+    });
+    
+    document.getElementById('contextDelete').addEventListener('click', () => {
+        if (currentContextConversationId) {
+            deleteConversation(currentContextConversationId);
+            hideContextMenu();
+        }
+    });
+    
+    // Hide context menu on outside click
+    document.addEventListener('click', (e) => {
+        if (!contextMenu.contains(e.target) && !e.target.closest('.conversation-item-menu')) {
+            hideContextMenu();
+        }
+    });
+    
     // Export options
     document.getElementById('exportTxtBtn').addEventListener('click', () => {
         exportAsText();
@@ -636,15 +867,12 @@ function showConfirmModal({ title = 'Confirm', message = 'Are you sure?', onConf
     modalTitle.textContent = title;
     modalBody.textContent = message;
 
-    // Show modal
     modal.classList.add('active');
 
-    // Cleanup old handlers
     modalConfirm.onclick = null;
     modalCancel.onclick = null;
     modalClose.onclick = null;
 
-    // Confirm action
     modalConfirm.addEventListener('click', () => {
             onConfirm();
             modal.classList.remove('active');
@@ -652,11 +880,9 @@ function showConfirmModal({ title = 'Confirm', message = 'Are you sure?', onConf
         { once: true }
     );
 
-    // Cancel and Close actions
     modalCancel.addEventListener('click', () => modal.classList.remove('active'), { once: true });
     modalClose.addEventListener('click', () => modal.classList.remove('active'), { once: true });
 
-    // Close modal when clicking outside the content
     modal.addEventListener('click', e => {
             if (e.target === modal) modal.classList.remove('active');
         }, { once: true }
@@ -669,13 +895,18 @@ function showConfirmModal({ title = 'Confirm', message = 'Are you sure?', onConf
 function showDisclaimerModal() {
     const modal = document.getElementById('disclaimerModal');
     const btnOk = document.getElementById('disclaimerOk');
+    const checkbox = document.getElementById('disclaimerDontShow');
 
+    checkbox.checked = false;
     modal.classList.add('active');
 
-    // Close handlers
-    btnOk.onclick = () => modal.classList.remove('active');
+    btnOk.onclick = () => {
+        if (checkbox.checked) {
+            saveDisclaimerPreference(true);
+        }
+        modal.classList.remove('active');
+    };
 }
-
 
 // =====================
 // Initialize App
