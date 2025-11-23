@@ -1,7 +1,8 @@
 // =====================
 // Configuration
 // =====================
-const API_URL = 'https://israaelnabty-nebraschatbotapi.hf.space/generate';
+//const API_URL = 'https://israaelnabty-nebraschatbotapi.hf.space/generate';
+const API_URL = 'https://nebras-medical-chatbot-chatbotapi.hf.space/generate';
 
 // =====================
 // State Management
