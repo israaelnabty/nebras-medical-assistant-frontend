@@ -121,31 +121,54 @@ async function checkAPIHealth() {
 }
 
 function buildPrompt() {
+    // Take only the last N exchanges (user + assistant = 2*N messages)
     const recentMessages = currentConversation.slice(-2*historyExchangesCount); 
 
+    // Build conversation context
     let context = "";
     recentMessages.forEach(msg => {
         if (msg.role === 'user') {
             context += `Previous Question: ${msg.content}\n`;
         } else if (msg.role === 'assistant') {
             context += `Previous Answer: ${msg.content}\n`;
-        }
+        }        
     });
+    context = context.trim();
 
+    // Get current user message (retry or new input)
     const currentMessage = lastFailedMessage || userInput.value.trim();
 
-    const prompt = `
-    You are a medical assistant. Provide accurate, concise, professional medical advice in 1-3 sentences.
+    // Base system instruction
+    const basePrompt = `
+    You are a medical assistant. Provide accurate, concise, professional medical advice in 1–2 sentences.
     Important: Always recommend consulting a healthcare provider for diagnosis and treatment.
-
-    Conversation History:
-    ${context}
-
-    Current Question: ${currentMessage}
-
-    Your Response:
     `;
-    return prompt;
+
+    // Build final prompt
+    let prompt;
+
+    if (context) {
+        prompt = `
+        ${basePrompt}
+
+        Conversation History:
+        ${context}
+
+        Current Question: ${currentMessage}
+
+        Your Response:
+        `;
+    } else {
+        prompt = `
+        ${basePrompt}
+
+        Question: ${currentMessage}
+
+        Your Response:
+        `;
+    }
+    
+    return prompt.trim();
 }
 
 async function sendMessage() {
