@@ -124,7 +124,7 @@ function isGreetingMessage(message) {
         
         // Identity questions
         'whats your name', 'what is your name', 'whats you name', 'what is you name', 
-        'who are you', 'what are you',
+        'who are you', 'what are you', 'what are you called',
         'tell me about yourself', 'introduce yourself'
     ];
     
