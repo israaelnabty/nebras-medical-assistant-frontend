@@ -102,6 +102,137 @@ function saveDisclaimerPreference(hideDisclaimer) {
 }
 
 // =====================
+// Greeting Detection
+// =====================
+function isGreetingMessage(message) {
+    const greetings = [
+        // Greetings
+        'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 
+        'good evening', 'good night', 'howdy', 'hola', 'salaam', 'salam',
+        
+        // Farewells
+        'bye', 'goodbye', 'good bye', 'see you', 'farewell', 'take care',
+        'catch you later', 'until next time', 'talk to you later', 'ttyl',
+        
+        // Thanks
+        'thanks', 'thank you', 'thx', 'ty', 'appreciate it', 'appreciated',
+        'grateful', 'much appreciated',
+        
+        // Common greeting questions
+        'how are you', 'how are you doing', 'how do you do', 'whats up', 
+        'what is up', 'sup', 'wassup', 'hows it going', 'how is it going',
+        
+        // Identity questions
+        'whats your name', 'what is your name', 'who are you', 'what are you',
+        'tell me about yourself', 'introduce yourself'
+    ];
+    
+    const normalizedMessage = message.toLowerCase().trim();
+    
+    // Check if message is only punctuation and whitespace
+    if (/^[\s?!.,;:'"]+$/.test(normalizedMessage)) {
+        return true;
+    }
+    
+    // Remove common punctuation and normalize apostrophes
+    // Remove spaces around apostrophes: "what 's" → "what's", "what' s" → "what's"
+    // Then remove apostrophes entirely: "what's" → "whats"
+    const cleanMessage = normalizedMessage
+        .replace(/\s*'\s*/g, '')  // Remove apostrophes and any spaces around them
+        .replace(/[,!.;?]+$/g, '')  // Remove trailing punctuation
+        .replace(/[,!.;]/g, ' ')  // Replace other punctuation with space
+        .replace(/\s+/g, ' ')  // Collapse multiple spaces into one
+        .trim();
+    
+    // Check if the entire cleaned message matches any greeting phrase exactly
+    if (greetings.includes(cleanMessage)) {
+        return true;
+    }
+    
+    // Also check with "nebras" removed for phrases like "how are you nebras"
+    const messageWithoutNebras = cleanMessage.replace(/\bnebras\b/g, '').replace(/\s+/g, ' ').trim();
+    if (greetings.includes(messageWithoutNebras)) {
+        return true;
+    }
+    
+    // Split into words
+    const words = cleanMessage.split(/\s+/);
+    
+    // If message has more than 4 words, it's likely not just a greeting
+    // Examples: "hi" (1 word) vs "hi I have a headache" (5 words)
+    if (words.length > 4) {
+        return false;
+    }
+    
+    // Check for exact matches (single greeting word)
+    if (words.length === 1 && greetings.includes(words[0])) {
+        return true;
+    }
+    
+    // Check for short greeting phrases (up to 4 words)
+    // But only if ALL words are greeting-related or very common filler words
+    const fillerWords = ['there', 'again', 'so', 'much', 'very', 'nebras'];
+    const allWords = [...greetings, ...fillerWords];
+    
+    if (words.length <= 4) {
+        const isAllGreetingWords = words.every(word => allWords.includes(word));
+        if (isAllGreetingWords) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+function getGreetingResponse(message) {
+    const normalizedMessage = message.toLowerCase().trim();
+    
+    // Identity questions
+    if (normalizedMessage.includes('your name') || 
+        normalizedMessage.includes('who are you') ||
+        normalizedMessage.includes('what are you') ||
+        normalizedMessage.includes('about yourself') ||
+        normalizedMessage.includes('introduce yourself')) {
+        return "I'm Nebras 🤖, your AI medical assistant! I'm here to provide medical information and guidance. How can I help with your health questions today?";
+    }
+    
+    // How are you questions
+    if (normalizedMessage.includes('how are you') || 
+        normalizedMessage.includes('how do you do') ||
+        normalizedMessage.includes('hows it going') ||
+        normalizedMessage.includes('how is it going') ||
+        normalizedMessage.includes('whats up') ||
+        normalizedMessage.includes('what is up') ||
+        normalizedMessage.includes('sup') ||
+        normalizedMessage.includes('wassup')) {
+        return "I'm doing great, thank you for asking! 😊 I'm here and ready to help with any medical questions you have. How can I assist you today?";
+    }
+    
+    // Farewells
+    if (normalizedMessage.includes('bye') || 
+        normalizedMessage.includes('farewell') ||
+        normalizedMessage.includes('see you')) {
+        return "Goodbye! Take care and feel free to come back anytime you need medical information. Stay healthy! 👋";
+    }
+    
+    // Thanks
+    if (normalizedMessage.includes('thank') || 
+        normalizedMessage.includes('thx') ||
+        normalizedMessage.includes('ty') ||
+        normalizedMessage.includes('appreciate')) {
+        return "You're very welcome! I'm here anytime you need medical advice or information. Stay healthy! 😊";
+    }
+    
+    // Question marks only
+    if (/^[\s?!.,;:'"]+$/.test(normalizedMessage)) {
+        return "I'm here to help with medical questions! Please ask me anything about symptoms, conditions, medications, or general health concerns. 🏥";
+    }
+    
+    // General greetings (hi, hello, etc.)
+    return "Hello! 👋 I'm Nebras, your AI medical assistant. How can I help you with your health questions today?";
+}
+
+// =====================
 // API Functions
 // =====================
 async function checkAPIHealth() {
@@ -172,10 +303,48 @@ function buildPrompt() {
 }
 
 async function sendMessage() {
-    const message = lastFailedMessage || userInput.value.trim();
+    const message = (lastFailedMessage || userInput.value.trim()).replace(/\s+/g, ' ');
     
-    if (!message) return;    
+    if (!message) return;
     
+    // Check if message is a greeting
+    if (isGreetingMessage(message)) {
+        // Clear input
+        if (!lastFailedMessage) {
+            userInput.value = '';
+        }
+        
+        // Display greeting and response in UI temporarily (without saving to history)
+        const tempUserDiv = document.createElement('div');
+        tempUserDiv.className = 'message user';
+        const tempUserContent = document.createElement('div');
+        tempUserContent.className = 'message-content';
+        tempUserContent.textContent = message;
+        tempUserDiv.appendChild(tempUserContent);
+        chatContainer.appendChild(tempUserDiv);
+        
+        // Add greeting response immediately without API call
+        const greetingResponse = getGreetingResponse(message);
+        const tempAssistantDiv = document.createElement('div');
+        tempAssistantDiv.className = 'message assistant';
+        const tempAssistantContent = document.createElement('div');
+        tempAssistantContent.className = 'message-content';
+        tempAssistantContent.textContent = greetingResponse;
+        tempAssistantDiv.appendChild(tempAssistantContent);
+        chatContainer.appendChild(tempAssistantDiv);
+        
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Don't add to currentConversation array
+        // Don't create a conversation for greeting-only messages
+        // Don't update analytics for greetings
+        
+        userInput.focus();
+        
+        return; // Exit early, don't call API
+    }
+    
+    // Rest of the original sendMessage code for non-greeting messages...
     // Only add user message if this is not a retry
     if (!lastFailedMessage) {
         addMessage(message, true);
